@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 
@@ -10,16 +10,30 @@ interface Post {
   imageUrl: string;
 }
 
-export default function PostDetail({ params }: { params: { id: string } }) {
-  const { id } = params; // Unwrap params
+export default function PostDetail({ params }: { params: Promise<{ id: string }> }) {
+  const [postId, setPostId] = useState<string | null>(null);
 
-  // Fetching the post by ID
-  const post: Post | null = getPostById(id);
+  // Unwrap params and set the id after the Promise resolves
+  useEffect(() => {
+    const fetchParams = async () => {
+      const resolvedParams = await params; // Wait for the promise to resolve
+      setPostId(resolvedParams.id);
+    };
+    
+    fetchParams();
+  }, [params]);
 
   const [comments, setComments] = useState<{ name: string; comment: string }[]>([
     { name: "Oliver", comment: "I love the layout of this website!!" },
     { name: "Sophia", comment: "This website is super user-friendly and appealing!" },
   ]);
+
+  if (!postId) {
+    return <div>Loading...</div>;
+  }
+
+  // Fetch post by id
+  const post: Post | null = getPostById(postId); // Assume this function fetches the post by ID
 
   // If the post is not found, return a 404 page
   if (!post) {
@@ -97,9 +111,7 @@ export default function PostDetail({ params }: { params: { id: string } }) {
                 className="bg-stone-200 p-4 rounded-lg shadow-sm mb-4 border-2 border-orange-300"
               >
                 <p className="text-stone-700 font-bold">{comment.name}</p>
-                <p className="text-orange-700 font-semibold">
-                  {comment.comment}
-                </p>
+                <p className="text-orange-700 font-semibold">{comment.comment}</p>
               </div>
             ))}
           </div>
@@ -108,6 +120,7 @@ export default function PostDetail({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
 
 
 const getPostById = (id: string) => {
